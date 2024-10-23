@@ -1,3 +1,5 @@
-fn main() {
-    println!("Hello, world!");
+mod system_req;
+
+fn main(){
+    system_req::execute();
 }
