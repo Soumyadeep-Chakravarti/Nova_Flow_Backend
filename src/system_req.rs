@@ -1,5 +1,8 @@
 use std::process::Command;
 use std::path::Path;
+use std::fs::File;
+use std::io::{self, Write};
+use reqwest::blocking::get;
 
 fn check_for_gpu() -> bool {
     #[cfg(target_os = "windows")]
@@ -42,7 +45,7 @@ fn install_cuda() {
     #[cfg(target_os = "windows")]
     {
         // Windows installation steps, typically requires manual installation
-        println!("Please install CUDA from the NVIDIA website: https://developer.nvidia.com/cuda-downloads");
+        println!("Installing CUDA drivers from the NVIDIA website: https://developer.nvidia.com/cuda-downloads");
     }
 
     #[cfg(target_os = "linux")]
@@ -66,6 +69,47 @@ fn install_cuda() {
         // macOS installation typically requires downloading from NVIDIA
         println!("Please install CUDA from the NVIDIA website: https://developer.nvidia.com/cuda-downloads");
     }
+}
+
+fn cuda_install_windows() {
+    let url = "https://developer.nvidia.com/compute/cuda/12.2.0/Prod/local_installers/cuda_12.2.0_515.65.01_windows.exe"; // Example URL
+    let installer_path = Path::new("cuda_installer.exe");
+
+    // Send a GET request to the URL
+    let response = get(url)?;
+
+    // Check if the request was successful
+    if response.status().is_success() {
+        // Create a file to save the installer
+        let mut file = File::create(installer_path)?;
+
+        // Write the response body to the file
+        let mut content = response.bytes()?;
+        file.write_all(&content)?;
+        println!("CUDA installer downloaded successfully to {:?}", installer_path);
+        run_installer(installer_path);
+
+    } else {
+        
+        println!("Failed to download the installer: {}", response.status());
+    }
+
+    Ok(())
+}
+
+fn run_installer(installer_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // Run the installer
+    let status = Command::new(installer_path)
+        .arg("/silent") // Use silent installation; adjust arguments as needed
+        .status()?;
+
+    if status.success() {
+        println!("CUDA installer executed successfully.");
+    } else {
+        println!("Failed to run the CUDA installer.");
+    }
+    
+    Ok(())
 }
 
 pub fn execute() {
